@@ -53,6 +53,7 @@ func FrontPage(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		data = helloWorld
 	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	frontPage.Execute(w, data)
 }
 
