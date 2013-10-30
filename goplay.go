@@ -20,14 +20,20 @@ import (
 )
 
 var (
-	httpListen = flag.String("http", "127.0.0.1:3999", "host:port to listen on")
-	htmlOutput = flag.Bool("html", false, "render program output as HTML")
+	httpListen     = flag.String("http", "127.0.0.1:3999", "host:port to listen on")
+	htmlOutput     = flag.Bool("html", false, "render program output as HTML")
+	compileUrlFlag = flag.String("compile", "/compile", "url of the compile function")
 )
 
 var (
 	// a source of numbers, for naming temporary files
 	uniq = make(chan int)
 )
+
+type Page struct {
+	Code       string
+	CompileURL string
+}
 
 func main() {
 	flag.Parse()
@@ -49,10 +55,7 @@ func main() {
 // its contents will be put in the interface's text area.
 // Otherwise, the default "hello, world" program is displayed.
 func FrontPage(w http.ResponseWriter, req *http.Request) {
-	data, err := ioutil.ReadFile(req.URL.Path[1:])
-	if err != nil {
-		data = helloWorld
-	}
+	data := &Page{Code: helloWorld, CompileURL: *compileUrlFlag}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	frontPage.Execute(w, data)
 }
@@ -61,6 +64,7 @@ func FrontPage(w http.ResponseWriter, req *http.Request) {
 // runs the program (returning any errors),
 // and sends the program's output as the HTTP response.
 func Compile(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	out, err := compile(req)
 	if err != nil {
 		error_(w, out, err)
@@ -251,7 +255,7 @@ function compile() {
 	var req = new XMLHttpRequest();
 	xmlreq = req;
 	req.onreadystatechange = compileUpdate;
-	req.open("POST", "/compile", true);
+    req.open("POST", "{{printf "%s" .CompileURL}}", true);
 	req.setRequestHeader("Content-Type", "text/plain; charset=utf-8");
 	req.send(prog);	
 }
@@ -272,22 +276,18 @@ function compileUpdate() {
 </script>
 </head>
 <body>
-<table width="100%"><tr><td width="60%" valign="top">
-<textarea autofocus="true" id="edit" spellcheck="false" onkeydown="keyHandler(event);" onkeyup="autocompile();">{{printf "%s" . |html}}</textarea>
+<textarea style="background-color:lightyellow;" autofocus="true" id="edit" spellcheck="false" onkeydown="keyHandler(event);" onkeyup="autocompile();">{{printf "%s" .Code |html}}</textarea>
 <div class="hints">
 (Shift-Enter to compile and run.)&nbsp;&nbsp;&nbsp;&nbsp;
 <input type="checkbox" id="autocompile" value="checked" /> Compile and run after each keystroke
 </div>
-<td width="3%">
-<td width="27%" align="right" valign="top">
 <div id="output"></div>
-</table>
 <div id="errors"></div>
 </body>
 </html>
 `
 
-var helloWorld = []byte(`package main
+var helloWorld = string(`package main
 
 import "fmt"
 
