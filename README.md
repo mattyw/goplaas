@@ -1,6 +1,6 @@
 See doc.go.
 
-This is a fork of the goplay code inculded in misc/goplay of the go1.2 release.
+This is a fork of the goplay code included in misc/goplay of the go1.2 release.
 
 The goal was to make a go playground that would allow you to make runnable examples using your ownpackages
 
